@@ -1,0 +1,31 @@
+C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\python.exe "E:\SAP_Integ\Git Change\2050710\2\Barcode_Dev-main (1)\Barcode_Dev-main\main.py" 
+Traceback (most recent call last):
+  File "E:\SAP_Integ\Git Change\2050710\2\Barcode_Dev-main (1)\Barcode_Dev-main\main.py", line 1, in <module>
+    from app import app
+  File "E:\SAP_Integ\Git Change\2050710\2\Barcode_Dev-main (1)\Barcode_Dev-main\app.py", line 44, in <module>
+    app = create_app()
+          ^^^^^^^^^^^^
+  File "E:\SAP_Integ\Git Change\2050710\2\Barcode_Dev-main (1)\Barcode_Dev-main\app.py", line 39, in create_app
+    db.init_app(app)
+  File "C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask_sqlalchemy\extension.py", line 374, in init_app
+    engines[key] = self._make_engine(key, options, app)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask_sqlalchemy\extension.py", line 665, in _make_engine
+    return sa.engine_from_config(options, prefix="")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py", line 823, in engine_from_config
+    return create_engine(url, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in create_engine
+  File "C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\deprecations.py", line 281, in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py", line 602, in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LENOVO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\mysql\pymysql.py", line 74, in import_dbapi
+    return __import__("pymysql")
+           ^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'pymysql'
+
+Process finished with exit code 1

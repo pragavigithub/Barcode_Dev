@@ -20,13 +20,21 @@ class DevelopmentConfig(Config):
         if database_url:
             return database_url
         
-        # Fallback to MySQL for local development
-        mysql_user = os.environ.get("MYSQL_USER", "root")
-        mysql_password = os.environ.get("MYSQL_PASSWORD", "password")
-        mysql_host = os.environ.get("MYSQL_HOST", "localhost")
-        mysql_port = os.environ.get("MYSQL_PORT", "3306")
-        mysql_database = os.environ.get("MYSQL_DATABASE", "wms_db")
-        return f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+        # Check if pymysql is available
+        try:
+            import pymysql
+            # Fallback to MySQL for local development
+            mysql_user = os.environ.get("MYSQL_USER", "root")
+            mysql_password = os.environ.get("MYSQL_PASSWORD", "password")
+            mysql_host = os.environ.get("MYSQL_HOST", "localhost")
+            mysql_port = os.environ.get("MYSQL_PORT", "3306")
+            mysql_database = os.environ.get("MYSQL_DATABASE", "wms_db")
+            return f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+        except ImportError:
+            # Fallback to SQLite for development if pymysql is not available
+            import os
+            db_path = os.path.join(os.getcwd(), 'wms_dev.db')
+            return f"sqlite:///{db_path}"
 
 class ProductionConfig(Config):
     """Production configuration"""

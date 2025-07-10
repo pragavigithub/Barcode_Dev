@@ -23,6 +23,18 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 ### 3. Install Dependencies
+
+**Option A: Windows Users (Easiest)**
+```batch
+setup_windows.bat
+```
+
+**Option B: Cross-Platform (Recommended)**
+```bash
+python install_local_deps.py
+```
+
+**Option C: Manual Installation**
 ```bash
 pip install flask flask-sqlalchemy pymysql werkzeug email-validator pillow pyjwt qrcode requests sqlalchemy gunicorn
 ```
