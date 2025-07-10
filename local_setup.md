@@ -47,13 +47,17 @@ GRANT ALL PRIVILEGES ON wms_db.* TO 'wms_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-### 5. Set Environment Variables
+### 5. Set Environment Variables (Optional for MySQL)
 
+**Option A: Use SQLite (Recommended for Quick Start)**
+No environment variables needed! Just run the application and it will automatically use SQLite.
+
+**Option B: Use MySQL (Advanced)**
 Create a `.env` file in the project root:
 ```bash
 # MySQL Database Configuration
-MYSQL_USER=wms_user
-MYSQL_PASSWORD=wms_password
+MYSQL_USER=root
+MYSQL_PASSWORD=root@123
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_DATABASE=wms_db

@@ -53,8 +53,9 @@ def debug_environment():
         from app import app, db
         with app.app_context():
             # Try to connect to database
-            db.engine.execute("SELECT 1")
-            print("✓ Database connection successful")
+            with db.engine.connect() as conn:
+                result = conn.execute(db.text("SELECT 1"))
+                print("✓ Database connection successful")
     except Exception as e:
         print(f"✗ Database connection failed: {e}")
         print("This is expected if MySQL isn't running or configured")
