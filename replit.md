@@ -92,7 +92,8 @@ Preferred communication style: Simple, everyday language.
 ### Database Management
 - SQLAlchemy automatic table creation
 - Connection pooling and health monitoring
-- MySQL-specific optimizations
+- PostgreSQL database with Replit environment integration
+- Migrated from MySQL to PostgreSQL for Replit compatibility
 
 ### Security Considerations
 - Password hashing with Werkzeug security
