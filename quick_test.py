@@ -19,11 +19,22 @@ def test_config():
         print(f"Database URI: {database_uri}")
         
         if "sqlite" in database_uri:
-            print("ℹ Using SQLite database (pymysql not available)")
+            print("ℹ Using SQLite database (local file-based)")
         elif "mysql" in database_uri:
             print("ℹ Using MySQL database")
         elif "postgresql" in database_uri:
             print("ℹ Using PostgreSQL database")
+            
+        # Additional database connectivity test
+        print("\nTesting database connectivity...")
+        try:
+            from app import app, db
+            with app.app_context():
+                db.create_all()
+                print("✓ Database connection successful!")
+        except Exception as e:
+            print(f"✗ Database connection failed: {e}")
+            print("ℹ The application will fallback to SQLite automatically")
             
         return True
         

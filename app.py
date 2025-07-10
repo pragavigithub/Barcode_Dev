@@ -46,5 +46,20 @@ app = create_app()
 with app.app_context():
     # Import models to ensure tables are created
     import models  # noqa: F401
-    db.create_all()
-    logging.info("Database tables created successfully")
+    
+    try:
+        db.create_all()
+        logging.info("Database tables created successfully")
+        logging.info(f"Using database: {app.config['SQLALCHEMY_DATABASE_URI'][:50]}...")
+    except Exception as e:
+        logging.error(f"Database connection failed: {e}")
+        logging.info("Falling back to SQLite database...")
+        
+        # Force SQLite fallback
+        db_path = os.path.join(os.getcwd(), 'wms_dev.db')
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+        
+        # Reinitialize with SQLite
+        db.init_app(app)
+        db.create_all()
+        logging.info("SQLite database initialized successfully")

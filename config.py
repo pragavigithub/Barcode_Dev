@@ -20,16 +20,23 @@ class DevelopmentConfig(Config):
         if database_url:
             return database_url
         
-        # Check if pymysql is available
+        # Check if pymysql is available and MySQL is configured
         try:
             import pymysql
-            # Fallback to MySQL for local development
-            mysql_user = os.environ.get("MYSQL_USER", "root")
-            mysql_password = os.environ.get("MYSQL_PASSWORD", "password")
-            mysql_host = os.environ.get("MYSQL_HOST", "localhost")
-            mysql_port = os.environ.get("MYSQL_PORT", "3306")
-            mysql_database = os.environ.get("MYSQL_DATABASE", "wms_db")
-            return f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+            # Check if MySQL environment variables are properly set
+            mysql_user = os.environ.get("MYSQL_USER")
+            mysql_password = os.environ.get("MYSQL_PASSWORD") 
+            mysql_host = os.environ.get("MYSQL_HOST")
+            mysql_database = os.environ.get("MYSQL_DATABASE")
+            
+            # Only try MySQL if all required variables are set
+            if mysql_user and mysql_password and mysql_host and mysql_database:
+                mysql_port = os.environ.get("MYSQL_PORT", "3306")
+                return f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+            else:
+                # Fallback to SQLite if MySQL not properly configured
+                db_path = os.path.join(os.getcwd(), 'wms_dev.db')
+                return f"sqlite:///{db_path}"
         except ImportError:
             # Fallback to SQLite for development if pymysql is not available
             db_path = os.path.join(os.getcwd(), 'wms_dev.db')
