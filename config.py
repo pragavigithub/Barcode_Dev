@@ -32,7 +32,6 @@ class DevelopmentConfig(Config):
             return f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
         except ImportError:
             # Fallback to SQLite for development if pymysql is not available
-            import os
             db_path = os.path.join(os.getcwd(), 'wms_dev.db')
             return f"sqlite:///{db_path}"
 

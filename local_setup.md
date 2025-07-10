@@ -68,7 +68,12 @@ SAP_B1_PASSWORD=your-sap-password
 SAP_B1_COMPANY_DB=your-company-database
 ```
 
-### 6. Run the Application
+### 6. Test Configuration (Optional)
+```bash
+python quick_test.py
+```
+
+### 7. Run the Application
 ```bash
 python main.py
 ```
