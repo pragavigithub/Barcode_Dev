@@ -69,6 +69,9 @@ def main():
         print("Login with: admin / admin123")
         print("\nPress Ctrl+C to stop the server")
         
+        print(f"Starting server on all interfaces (0.0.0.0:5000)")
+        print(f"Local access: http://localhost:5000")
+        print(f"Network access: http://192.168.1.5:5000")
         app.run(host='0.0.0.0', port=5000, debug=True)
         
     except Exception as e:
