@@ -13,11 +13,31 @@ def setup_environment():
     if not os.environ.get("SESSION_SECRET"):
         os.environ["SESSION_SECRET"] = "dev-secret-key-local-2024"
     
-    # Clear any problematic DATABASE_URL
-    if os.environ.get("DATABASE_URL"):
-        print("Found DATABASE_URL, keeping it...")
+    # Load .env file if it exists
+    try:
+        with open('.env', 'r') as f:
+            for line in f:
+                if line.strip() and not line.startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    os.environ[key] = value
+        print("✓ Loaded .env file")
+    except FileNotFoundError:
+        print("ℹ No .env file found, using system environment variables")
+    
+    # Debug environment
+    print("\nEnvironment Check:")
+    mysql_vars = ['MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_HOST', 'MYSQL_DATABASE']
+    mysql_configured = all(os.environ.get(var) for var in mysql_vars)
+    
+    if mysql_configured:
+        print("✓ MySQL environment variables configured")
     else:
-        print("No DATABASE_URL found, will use auto-detection...")
+        print("ℹ MySQL not configured, will use SQLite")
+    
+    if os.environ.get("DATABASE_URL"):
+        print("✓ DATABASE_URL found, will use PostgreSQL")
+    else:
+        print("ℹ No DATABASE_URL found")
 
 def main():
     print("WMS Application - Local Development Runner")

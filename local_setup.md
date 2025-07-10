@@ -107,6 +107,11 @@ export DATABASE_URL="postgresql://user:password@localhost:5432/wms_db"
 
 ## Troubleshooting
 
+### Step 1: Debug Your Configuration
+```bash
+python debug_config.py
+```
+
 ### Database Connection Issues
 
 1. **MySQL not starting:**
@@ -114,12 +119,17 @@ export DATABASE_URL="postgresql://user:password@localhost:5432/wms_db"
    - Linux: `sudo systemctl start mysql`
    - macOS: `brew services start mysql`
 
-2. **Permission denied:**
+2. **Environment Variables Not Working:**
+   - Check if `.env` file is in the correct directory
+   - Verify environment variable names are correct
+   - Test: `echo $MYSQL_USER` (Linux/Mac) or `echo %MYSQL_USER%` (Windows)
+
+3. **Permission denied:**
    - Check MySQL user permissions
    - Verify database exists
    - Test connection: `mysql -u wms_user -p wms_db`
 
-3. **Port conflicts:**
+4. **Port conflicts:**
    - Check if port 5000 is available
    - Change port in main.py if needed
 
