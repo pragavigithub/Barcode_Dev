@@ -39,7 +39,7 @@
             </div>
             <div class="card-body">
                 <p><strong>Error Code:</strong> 500</p>
-                <p><strong>Timestamp:</strong> {{ moment().format('YYYY-MM-DD HH:mm:ss') }}</p>
+                <p><strong>Timestamp:</strong> {{ moment().strftime('%Y-%m-%d %H:%M:%S') if moment else 'N/A' }}</p>
                 <p><strong>Request URL:</strong> {{ request.url }}</p>
                 <p><strong>User Agent:</strong> {{ request.headers.get('User-Agent', 'Unknown') }}</p>
             </div>

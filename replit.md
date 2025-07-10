@@ -8,6 +8,13 @@ This is a Flask-based Warehouse Management System (WMS) designed to handle goods
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (July 2025)
+
+- **Database Migration**: Successfully migrated from MySQL to PostgreSQL for Replit compatibility
+- **Security Updates**: Fixed session key configuration and template rendering issues  
+- **Sample Data**: Added admin user (admin/admin123) and sample purchase order for testing
+- **Environment Setup**: Configured PostgreSQL database with proper connection pooling
+
 ## System Architecture
 
 ### Backend Architecture
