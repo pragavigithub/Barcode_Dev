@@ -13,6 +13,9 @@ def setup_environment():
     if not os.environ.get("SESSION_SECRET"):
         os.environ["SESSION_SECRET"] = "dev-secret-key-local-2024"
     
+    # Set development mode
+    os.environ["WMS_DEV_MODE"] = "true"
+    
     # Load .env file if it exists
     try:
         with open('.env', 'r') as f:
@@ -54,15 +57,24 @@ def main():
         print(f"✓ Database configured")
         print(f"✓ Ready to start server")
         
-        # Check if we should create admin user
+        # Create sample data for development
         try:
-            from models import User
+            from models import User, PurchaseOrder
             with app.app_context():
+                # Check if we need to create sample data
+                po_count = PurchaseOrder.query.count()
+                if po_count == 0:
+                    print("\n⚠ No purchase orders found. Creating sample data...")
+                    exec(open('create_sample_data.py').read())
+                else:
+                    print(f"✓ Found {po_count} purchase orders in database")
+                    
+                # Ensure admin user exists
                 if not User.query.filter_by(username='admin').first():
                     print("\n⚠ No admin user found. Creating one...")
                     exec(open('create_admin_user.py').read())
         except Exception as e:
-            print(f"⚠ Could not check/create admin user: {e}")
+            print(f"⚠ Could not check/create sample data: {e}")
         
         print("\nStarting Flask development server...")
         print("Access the application at: http://localhost:5000")

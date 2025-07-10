@@ -16,11 +16,18 @@ class SAPIntegration:
         self.password = os.environ.get('SAP_B1_PASSWORD', '1422')
         self.session_id = None
         self.session_timeout = None
-        self.session_id = None
-        self.session_timeout = None
+        # Development mode flag
+        self.dev_mode = os.environ.get('WMS_DEV_MODE', 'true').lower() == 'true'
 
     def login(self):
         """Login to SAP B1 Service Layer"""
+        # Skip actual SAP login in development mode
+        if self.dev_mode:
+            logging.info("Development mode: Skipping SAP B1 login")
+            self.session_id = "dev_session_123"
+            self.session_timeout = "dev_route_456"
+            return True
+            
         try:
             login_data = {
                 'CompanyDB': self.company_db,
@@ -72,6 +79,13 @@ class SAPIntegration:
 
     def post_grpo_to_sap(self, grpo):
         """Post GRPO to SAP B1 as Purchase Receipt"""
+        # Development mode - simulate successful posting
+        if self.dev_mode:
+            import random
+            doc_entry = random.randint(100000, 999999)
+            logging.info(f"Development mode: Simulated GRPO posting - Doc Entry: {doc_entry}")
+            return doc_entry
+            
         try:
             if not self.login():
                 return None
