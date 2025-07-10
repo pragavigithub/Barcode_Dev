@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}GRPO List - WMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-truck-loading me-2"></i>Goods Receipt (GRPO)</h1>
+    <div>
+        {% if user.has_permission('grpo_create') %}
+        <a href="{{ url_for('create_grpo') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>New GRPO
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row align-items-end">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" name="status" id="status">
+                    <option value="">All Statuses</option>
+                    <option value="draft" {{ 'selected' if status_filter == 'draft' }}>Draft</option>
+                    <option value="pending_qc" {{ 'selected' if status_filter == 'pending_qc' }}>Pending QC</option>
+                    <option value="qc_approved" {{ 'selected' if status_filter == 'qc_approved' }}>QC Approved</option>
+                    <option value="qc_rejected" {{ 'selected' if status_filter == 'qc_rejected' }}>QC Rejected</option>
+                    <option value="posted_to_sap" {{ 'selected' if status_filter == 'posted_to_sap' }}>Posted to SAP</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </button>
+                <a href="{{ url_for('grpo_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- GRPO List -->
+<div class="card">
+    <div class="card-body">
+        {% if grpos.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>GRN Number</th>
+                        <th>PO Number</th>
+                        <th>Supplier</th>
+                        <th>Receipt Date</th>
+                        <th>Status</th>
+                        <th>Total Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grpo in grpos.items %}
+                    <tr>
+                        <td>{{ grpo.grn_number }}</td>
+                        <td>{{ grpo.purchase_order.po_number }}</td>
+                        <td>{{ grpo.purchase_order.supplier_name }}</td>
+                        <td>{{ grpo.receipt_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if grpo.status.value == 'posted_to_sap' else 'warning' if grpo.status.value == 'pending_qc' else 'danger' if grpo.status.value == 'qc_rejected' else 'secondary' }}">
+                                {{ grpo.status.value.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>${{ "%.2f"|format(grpo.total_amount) }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('grpo_details', grpo_id=grpo.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if grpo.status.value == 'draft' and user.has_permission('grpo_edit') %}
+                                <a href="{{ url_for('grpo_details', grpo_id=grpo.id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                                {% if grpo.qr_codes %}
+                                <button class="btn btn-sm btn-outline-info" onclick="showQRCodes({{ grpo.id }})">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if grpos.pages > 1 %}
+        <nav aria-label="GRPO pagination">
+            <ul class="pagination justify-content-center">
+                {% if grpos.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('grpo_list', page=grpos.prev_num, status=status_filter) }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in grpos.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != grpos.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('grpo_list', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if grpos.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('grpo_list', page=grpos.next_num, status=status_filter) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted"></i>
+            <h4 class="mt-3 text-muted">No GRPOs Found</h4>
+            <p class="text-muted">Start by creating a new GRPO</p>
+            {% if user.has_permission('grpo_create') %}
+            <a href="{{ url_for('create_grpo') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create New GRPO
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">QR Codes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="qrCodeContainer">
+                    <!-- QR codes will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printQRCodes()">
+                    <i class="fas fa-print me-2"></i>Print Labels
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showQRCodes(grpoId) {
+    // In a real implementation, this would fetch QR codes from the server
+    const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+    document.getElementById('qrCodeContainer').innerHTML = 
+        '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading QR codes...</p></div>';
+    modal.show();
+    
+    // Mock QR code display
+    setTimeout(() => {
+        document.getElementById('qrCodeContainer').innerHTML = 
+            '<div class="text-center"><p>QR codes would be displayed here for GRPO ' + grpoId + '</p></div>';
+    }, 1000);
+}
+
+function printQRCodes() {
+    alert('QR codes sent to printer');
+}
+</script>
+{% endblock %}

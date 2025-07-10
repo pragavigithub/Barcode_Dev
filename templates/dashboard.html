@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - WMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
+    <div class="text-muted">
+        Welcome back, {{ user.full_name }}!
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Total GRPOs</h5>
+                        <h2>{{ total_grpos }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-truck-loading fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Pending QC</h5>
+                        <h2>{{ pending_qc }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Draft GRPOs</h5>
+                        <h2>{{ draft_grpos }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-edit fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Branch</h5>
+                        <h5>{{ session.branch_id or 'Default' }}</h5>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-building fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if user.has_permission('grpo_create') %}
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('create_grpo') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-2"></i>
+                            New GRPO
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-secondary w-100" onclick="startBarcodeScan()">
+                            <i class="fas fa-barcode me-2"></i>
+                            Scan Barcode
+                        </button>
+                    </div>
+                    
+                    {% if user.has_permission('qc_approve') %}
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('qc_pending') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-check-double me-2"></i>
+                            QC Approval
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user.has_permission('reports') %}
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('reports') }}" class="btn btn-info w-100">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Reports
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent GRPOs -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Recent GRPOs</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_grpos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>GRN Number</th>
+                                <th>PO Number</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grpo in recent_grpos %}
+                            <tr>
+                                <td>{{ grpo.grn_number }}</td>
+                                <td>{{ grpo.purchase_order.po_number }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if grpo.status.value == 'posted_to_sap' else 'warning' if grpo.status.value == 'pending_qc' else 'secondary' }}">
+                                        {{ grpo.status.value.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>{{ grpo.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('grpo_details', grpo_id=grpo.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted"></i>
+                    <p class="text-muted mt-2">No recent GRPOs found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barcode Scanner Modal -->
+<div class="modal fade" id="barcodeScanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Barcode Scanner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="barcodeInput" class="form-label">Scan or Enter Barcode</label>
+                    <input type="text" class="form-control" id="barcodeInput" placeholder="Scan barcode here...">
+                </div>
+                <div id="barcodeResult" class="mt-3" style="display: none;">
+                    <h6>Barcode Information:</h6>
+                    <div id="barcodeInfo"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="processBarcodeManually()">Process</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/barcode_scanner.js') }}"></script>
+{% endblock %}

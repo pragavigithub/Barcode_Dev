@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Create User - WMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-user-plus me-2"></i>Create New User</h1>
+    <a href="{{ url_for('user_management') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Users
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>User Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" data-enhanced>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                                <div class="form-text">Must be unique and at least 3 characters long</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                                <div class="form-text">Must be a valid email address</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="togglePasswordVisibility('password')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">At least 8 characters with uppercase, lowercase, and numbers</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="togglePasswordVisibility('confirm_password')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Select Role</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="warehouse_staff">Warehouse Staff</option>
+                                    <option value="qc_staff">QC Staff</option>
+                                    <option value="view_only">View Only</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="branch_id" class="form-label">Branch</label>
+                                <select class="form-select" id="branch_id" name="branch_id">
+                                    <option value="">Default Branch</option>
+                                    <option value="1">Main Branch</option>
+                                    <option value="2">Warehouse A</option>
+                                    <option value="3">Warehouse B</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Active User
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('user_management') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Role Permissions</h5>
+            </div>
+            <div class="card-body">
+                <div id="rolePermissions">
+                    <p class="text-muted">Select a role to view permissions</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Password Requirements</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>Minimum 8 characters</li>
+                    <li><i class="fas fa-check text-success me-2"></i>At least one uppercase letter</li>
+                    <li><i class="fas fa-check text-success me-2"></i>At least one lowercase letter</li>
+                    <li><i class="fas fa-check text-success me-2"></i>At least one number</li>
+                    <li><i class="fas fa-check text-success me-2"></i>At least one special character</li>
+                </ul>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="generateSecurePassword()">
+                    <i class="fas fa-key me-2"></i>Generate Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Role permissions mapping
+const rolePermissions = {
+    admin: [
+        'All system permissions',
+        'User management',
+        'System configuration',
+        'Full access to all modules'
+    ],
+    manager: [
+        'GRPO creation and editing',
+        'QC approval',
+        'User viewing',
+        'Reports and analytics',
+        'Inventory management'
+    ],
+    warehouse_staff: [
+        'GRPO creation and editing',
+        'GRPO viewing',
+        'Barcode scanning',
+        'Inventory operations'
+    ],
+    qc_staff: [
+        'GRPO viewing',
+        'QC approval/rejection',
+        'Quality control reports',
+        'Batch tracking'
+    ],
+    view_only: [
+        'GRPO viewing',
+        'Reports viewing',
+        'Read-only access'
+    ]
+};
+
+// Update permissions display when role changes
+document.getElementById('role').addEventListener('change', function() {
+    const selectedRole = this.value;
+    const permissionsDiv = document.getElementById('rolePermissions');
+    
+    if (selectedRole && rolePermissions[selectedRole]) {
+        const permissions = rolePermissions[selectedRole];
+        let html = '<h6>Permissions for ' + selectedRole.replace('_', ' ').toUpperCase() + ':</h6>';
+        html += '<ul class="list-unstyled">';
+        permissions.forEach(permission => {
+            html += '<li><i class="fas fa-check text-success me-2"></i>' + permission + '</li>';
+        });
+        html += '</ul>';
+        permissionsDiv.innerHTML = html;
+    } else {
+        permissionsDiv.innerHTML = '<p class="text-muted">Select a role to view permissions</p>';
+    }
+});
+
+// Toggle password visibility
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        button.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        button.className = 'fas fa-eye';
+    }
+}
+
+// Generate secure password
+function generateSecurePassword() {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    
+    let password = '';
+    
+    // Ensure at least one character from each set
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Fill remaining length with random characters
+    const allChars = uppercase + lowercase + numbers + symbols;
+    for (let i = password.length; i < 12; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    // Set password fields
+    document.getElementById('password').value = password;
+    document.getElementById('confirm_password').value = password;
+    
+    WMS.showToast('Secure password generated', 'success');
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        WMS.showToast('Passwords do not match', 'error');
+        return;
+    }
+    
+    if (!validatePassword(password)) {
+        e.preventDefault();
+        WMS.showToast('Password does not meet security requirements', 'error');
+        return;
+    }
+});
+
+// Password validation
+function validatePassword(password) {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
+}
+
+// Username availability check
+document.getElementById('username').addEventListener('blur', function() {
+    const username = this.value.trim();
+    if (username.length >= 3) {
+        // In a real implementation, this would check username availability
+        // For now, we'll show a success message
+        this.classList.add('is-valid');
+        this.classList.remove('is-invalid');
+    } else {
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+    }
+});
+
+// Email validation
+document.getElementById('email').addEventListener('blur', function() {
+    const email = this.value.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (emailPattern.test(email)) {
+        this.classList.add('is-valid');
+        this.classList.remove('is-invalid');
+    } else {
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+    }
+});
+
+// Real-time password strength indicator
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    updatePasswordStrength(password);
+});
+
+function updatePasswordStrength(password) {
+    const requirements = [
+        { regex: /.{8,}/, text: 'At least 8 characters' },
+        { regex: /[A-Z]/, text: 'Uppercase letter' },
+        { regex: /[a-z]/, text: 'Lowercase letter' },
+        { regex: /\d/, text: 'Number' },
+        { regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, text: 'Special character' }
+    ];
+    
+    const strength = requirements.filter(req => req.regex.test(password)).length;
+    const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][strength] || 'Very Weak';
+    const strengthColor = ['danger', 'danger', 'warning', 'info', 'success'][strength] || 'danger';
+    
+    // Update password field styling
+    const passwordField = document.getElementById('password');
+    passwordField.className = `form-control border-${strengthColor}`;
+    
+    // You could add a strength indicator here
+    console.log(`Password strength: ${strengthText}`);
+}
+</script>
+{% endblock %}

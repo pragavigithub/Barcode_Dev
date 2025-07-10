@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Control Approval - WMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-check-double me-2"></i>Quality Control Approval</h1>
+    <div class="badge bg-warning fs-6">{{ grpos|length }} Pending</div>
+</div>
+
+{% if grpos %}
+<div class="row">
+    {% for grpo in grpos %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ grpo.grn_number }}</h5>
+                <span class="badge bg-warning">Pending QC</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>PO Number:</strong> {{ grpo.purchase_order.po_number }}</p>
+                        <p><strong>Supplier:</strong> {{ grpo.purchase_order.supplier_name }}</p>
+                        <p><strong>Receipt Date:</strong> {{ grpo.receipt_date.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Created By:</strong> {{ grpo.created_by_user.full_name }}</p>
+                        <p><strong>Total Amount:</strong> ${{ "%.2f"|format(grpo.total_amount) }}</p>
+                        <p><strong>Items:</strong> {{ grpo.grpo_lines|length }}</p>
+                    </div>
+                </div>
+                
+                {% if grpo.grpo_lines %}
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Received Qty</th>
+                                <th>Batch</th>
+                                <th>Expiry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in grpo.grpo_lines %}
+                            <tr>
+                                <td>{{ line.po_line.item_code }}</td>
+                                <td>{{ line.received_quantity }}</td>
+                                <td>{{ line.batch_number or 'N/A' }}</td>
+                                <td>{{ line.expiry_date.strftime('%Y-%m-%d') if line.expiry_date else 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <button class="btn btn-success btn-sm" onclick="showApprovalModal({{ grpo.id }}, 'approved')">
+                        <i class="fas fa-check me-2"></i>Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="showApprovalModal({{ grpo.id }}, 'rejected')">
+                        <i class="fas fa-times me-2"></i>Reject
+                    </button>
+                    <a href="{{ url_for('grpo_details', grpo_id=grpo.id) }}" class="btn btn-info btn-sm">
+                        <i class="fas fa-eye me-2"></i>View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+        <h4>No Pending QC Approvals</h4>
+        <p class="text-muted">All GRPOs have been processed</p>
+        <a href="{{ url_for('grpo_list') }}" class="btn btn-primary">
+            <i class="fas fa-truck-loading me-2"></i>View All GRPOs
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- QC Approval Modal -->
+<div class="modal fade" id="qcApprovalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qcApprovalTitle">QC Approval</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="qcApprovalForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="qc_notes" class="form-label">QC Notes</label>
+                        <textarea class="form-control" id="qc_notes" name="qc_notes" rows="4" 
+                                  placeholder="Enter quality control notes..."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6>QC Checklist:</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="check_quantity">
+                            <label class="form-check-label" for="check_quantity">
+                                Quantity matches delivery note
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="check_condition">
+                            <label class="form-check-label" for="check_condition">
+                                Items are in good condition
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="check_expiry">
+                            <label class="form-check-label" for="check_expiry">
+                                Expiry dates are acceptable
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="check_packaging">
+                            <label class="form-check-label" for="check_packaging">
+                                Packaging is intact
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="approval_status" id="approval_status">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitApproval">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SAP Posting Progress Modal -->
+<div class="modal fade" id="sapPostingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processing SAP Integration</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Posting GRPO to SAP B1...</p>
+                <p class="text-muted">Please wait while the system processes the transaction.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentGrpoId = null;
+
+function showApprovalModal(grpoId, status) {
+    currentGrpoId = grpoId;
+    
+    const modal = new bootstrap.Modal(document.getElementById('qcApprovalModal'));
+    const form = document.getElementById('qcApprovalForm');
+    const title = document.getElementById('qcApprovalTitle');
+    const submitBtn = document.getElementById('submitApproval');
+    const statusInput = document.getElementById('approval_status');
+    
+    // Update form action
+    form.action = `/qc/approve/${grpoId}`;
+    
+    // Update UI based on status
+    if (status === 'approved') {
+        title.textContent = 'Approve GRPO';
+        submitBtn.textContent = 'Approve';
+        submitBtn.className = 'btn btn-success';
+        statusInput.value = 'approved';
+    } else {
+        title.textContent = 'Reject GRPO';
+        submitBtn.textContent = 'Reject';
+        submitBtn.className = 'btn btn-danger';
+        statusInput.value = 'rejected';
+    }
+    
+    modal.show();
+}
+
+// Handle form submission
+document.getElementById('qcApprovalForm').addEventListener('submit', function(e) {
+    const status = document.getElementById('approval_status').value;
+    
+    if (status === 'approved') {
+        // Check if all QC items are checked for approval
+        const checkboxes = this.querySelectorAll('input[type="checkbox"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        if (!allChecked) {
+            e.preventDefault();
+            alert('Please complete all QC checks before approving');
+            return;
+        }
+        
+        // Show SAP posting modal for approved items
+        bootstrap.Modal.getInstance(document.getElementById('qcApprovalModal')).hide();
+        
+        setTimeout(() => {
+            const sapModal = new bootstrap.Modal(document.getElementById('sapPostingModal'));
+            sapModal.show();
+            
+            // Continue with form submission
+            this.submit();
+        }, 300);
+    }
+});
+
+// Show success message after page reload
+window.addEventListener('load', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('approved') === 'true') {
+        setTimeout(() => {
+            const sapModal = bootstrap.Modal.getInstance(document.getElementById('sapPostingModal'));
+            if (sapModal) {
+                sapModal.hide();
+            }
+        }, 2000);
+    }
+});
+
+// Auto-refresh page every 30 seconds to check for new pending approvals
+setInterval(function() {
+    // Only refresh if no modal is open
+    if (!document.querySelector('.modal.show')) {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %}

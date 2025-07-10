@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}GRPO Details - WMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-truck-loading me-2"></i>GRPO: {{ grpo.grn_number }}</h1>
+    <div>
+        <a href="{{ url_for('grpo_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+        </a>
+        {% if grpo.status.value == 'draft' and user.has_permission('grpo_edit') %}
+        <button class="btn btn-success" onclick="submitForQC()">
+            <i class="fas fa-check me-2"></i>Submit for QC
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- GRPO Header -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>GRPO Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>GRN Number:</strong> {{ grpo.grn_number }}</p>
+                        <p><strong>PO Number:</strong> {{ grpo.purchase_order.po_number }}</p>
+                        <p><strong>Supplier:</strong> {{ grpo.purchase_order.supplier_name }}</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge bg-{{ 'success' if grpo.status.value == 'posted_to_sap' else 'warning' if grpo.status.value == 'pending_qc' else 'danger' if grpo.status.value == 'qc_rejected' else 'secondary' }}">
+                                {{ grpo.status.value.replace('_', ' ').title() }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Receipt Date:</strong> {{ grpo.receipt_date.strftime('%Y-%m-%d') }}</p>
+                        <p><strong>Created By:</strong> {{ grpo.created_by_user.full_name }}</p>
+                        <p><strong>Total Amount:</strong> ${{ "%.2f"|format(grpo.total_amount) }}</p>
+                        <p><strong>Delivery Note:</strong> {{ grpo.supplier_delivery_note or 'N/A' }}</p>
+                    </div>
+                </div>
+                {% if grpo.remarks %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <p><strong>Remarks:</strong> {{ grpo.remarks }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- GRPO Lines -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Items Received</h5>
+                {% if grpo.status.value == 'draft' and user.has_permission('grpo_edit') %}
+                <button class="btn btn-primary btn-sm" onclick="showAddLineModal()">
+                    <i class="fas fa-plus me-2"></i>Add Item
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if grpo.grpo_lines %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Item Code</th>
+                                <th>Description</th>
+                                <th>Received Qty</th>
+                                <th>UOM</th>
+                                <th>Bin Location</th>
+                                <th>Batch</th>
+                                <th>Expiry Date</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                                {% if grpo.status.value == 'draft' and user.has_permission('grpo_edit') %}
+                                <th>Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in grpo.grpo_lines %}
+                            <tr>
+                                <td>{{ line.po_line.item_code }}</td>
+                                <td>{{ line.po_line.item_description }}</td>
+                                <td>{{ line.received_quantity }}</td>
+                                <td>{{ line.po_line.unit_of_measure }}</td>
+                                <td>{{ line.bin_location or 'N/A' }}</td>
+                                <td>{{ line.batch_number or 'N/A' }}</td>
+                                <td>{{ line.expiry_date.strftime('%Y-%m-%d') if line.expiry_date else 'N/A' }}</td>
+                                <td>${{ "%.2f"|format(line.unit_price) }}</td>
+                                <td>${{ "%.2f"|format(line.line_total) }}</td>
+                                {% if grpo.status.value == 'draft' and user.has_permission('grpo_edit') %}
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="showSplitModal({{ line.id }})">
+                                        <i class="fas fa-cut"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted"></i>
+                    <p class="text-muted mt-2">No items received yet</p>
+                    {% if grpo.status.value == 'draft' and user.has_permission('grpo_edit') %}
+                    <button class="btn btn-primary" onclick="showAddLineModal()">
+                        <i class="fas fa-plus me-2"></i>Add First Item
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- QR Codes -->
+        {% if grpo.qr_codes %}
+        <div class="card">
+            <div class="card-header">
+                <h5>Generated QR Codes</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for qr in grpo.qr_codes %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <div class="bg-light p-3 mb-2">
+                                    <i class="fas fa-qrcode fa-3x"></i>
+                                </div>
+                                <h6>{{ qr.item_code }}</h6>
+                                <p class="small">Qty: {{ qr.quantity }}</p>
+                                <p class="small">Batch: {{ qr.batch_number or 'N/A' }}</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="printQRCode({{ qr.id }})">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <!-- PO Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Purchase Order Details</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>PO Number:</strong> {{ grpo.purchase_order.po_number }}</p>
+                <p><strong>Supplier:</strong> {{ grpo.purchase_order.supplier_name }}</p>
+                <p><strong>PO Date:</strong> {{ grpo.purchase_order.po_date.strftime('%Y-%m-%d') }}</p>
+                <p><strong>Total Lines:</strong> {{ grpo.purchase_order.po_lines|length }}</p>
+                
+                <h6 class="mt-3">Available Items:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Open Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in grpo.purchase_order.po_lines %}
+                            {% if line.open_quantity > 0 %}
+                            <tr>
+                                <td>{{ line.item_code }}</td>
+                                <td>{{ line.open_quantity }}</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- QC Information -->
+        {% if grpo.qc_approval %}
+        <div class="card">
+            <div class="card-header">
+                <h5>Quality Control</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>QC Status:</strong> 
+                    <span class="badge bg-{{ 'success' if grpo.qc_approval.approval_status == 'approved' else 'danger' }}">
+                        {{ grpo.qc_approval.approval_status.title() }}
+                    </span>
+                </p>
+                <p><strong>QC By:</strong> {{ grpo.qc_approval.qc_user.full_name }}</p>
+                <p><strong>QC Date:</strong> {{ grpo.qc_approval.approval_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                {% if grpo.qc_approval.qc_notes %}
+                <p><strong>QC Notes:</strong> {{ grpo.qc_approval.qc_notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Line Modal -->
+<div class="modal fade" id="addLineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Item to GRPO</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_grpo_line', grpo_id=grpo.id) }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="po_line_id" class="form-label">Item</label>
+                                <select class="form-select" name="po_line_id" id="po_line_id" required>
+                                    <option value="">Select Item</option>
+                                    {% for line in grpo.purchase_order.po_lines %}
+                                    {% if line.open_quantity > 0 %}
+                                    <option value="{{ line.id }}" data-max-qty="{{ line.open_quantity }}">
+                                        {{ line.item_code }} - {{ line.item_description }} (Open: {{ line.open_quantity }})
+                                    </option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="received_quantity" class="form-label">Received Quantity</label>
+                                <input type="number" class="form-control" name="received_quantity" id="received_quantity" 
+                                       step="0.001" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="bin_location" class="form-label">Bin Location</label>
+                                <input type="text" class="form-control" name="bin_location" id="bin_location">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="batch_number" class="form-label">Batch Number</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="batch_number" id="batch_number">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="scanBatch()">
+                                        <i class="fas fa-barcode"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="expiry_date" class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" name="expiry_date" id="expiry_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier_barcode" class="form-label">Supplier Barcode</label>
+                                <input type="text" class="form-control" name="supplier_barcode" id="supplier_barcode">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Split Quantity Modal -->
+<div class="modal fade" id="splitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Split Quantity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="split_method" class="form-label">Split Method</label>
+                    <select class="form-select" id="split_method" onchange="updateSplitOptions()">
+                        <option value="equal">Equal Split</option>
+                        <option value="custom">Custom Split</option>
+                    </select>
+                </div>
+                
+                <div id="split_options">
+                    <div class="mb-3">
+                        <label for="split_count" class="form-label">Number of Parts</label>
+                        <input type="number" class="form-control" id="split_count" min="2" value="2">
+                    </div>
+                </div>
+                
+                <div id="split_preview" class="alert alert-info" style="display: none;">
+                    <h6>Preview:</h6>
+                    <div id="split_preview_content"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="applySplit()">Apply Split</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/barcode_scanner.js') }}"></script>
+<script>
+let currentLineId = null;
+
+function showAddLineModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addLineModal'));
+    modal.show();
+}
+
+function showSplitModal(lineId) {
+    currentLineId = lineId;
+    const modal = new bootstrap.Modal(document.getElementById('splitModal'));
+    modal.show();
+}
+
+function updateSplitOptions() {
+    const method = document.getElementById('split_method').value;
+    const options = document.getElementById('split_options');
+    
+    if (method === 'equal') {
+        options.innerHTML = `
+            <div class="mb-3">
+                <label for="split_count" class="form-label">Number of Parts</label>
+                <input type="number" class="form-control" id="split_count" min="2" value="2" onchange="previewSplit()">
+            </div>
+        `;
+    } else {
+        options.innerHTML = `
+            <div class="mb-3">
+                <label class="form-label">Custom Quantities</label>
+                <div id="custom_quantities">
+                    <div class="input-group mb-2">
+                        <input type="number" class="form-control" placeholder="Quantity" min="0" step="0.001">
+                        <button class="btn btn-outline-secondary" type="button" onclick="addCustomQuantity()">+</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function previewSplit() {
+    // Mock preview - in real implementation, this would calculate actual splits
+    const count = document.getElementById('split_count').value;
+    const preview = document.getElementById('split_preview');
+    const content = document.getElementById('split_preview_content');
+    
+    if (count > 1) {
+        let html = '';
+        for (let i = 1; i <= count; i++) {
+            html += `<div>Part ${i}: Equal quantity</div>`;
+        }
+        content.innerHTML = html;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function applySplit() {
+    alert('Split applied - QR codes will be generated for each part');
+    bootstrap.Modal.getInstance(document.getElementById('splitModal')).hide();
+}
+
+function submitForQC() {
+    if (confirm('Are you sure you want to submit this GRPO for Quality Control approval?')) {
+        // Create a form to submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("submit_grpo_for_qc", grpo_id=grpo.id) }}';
+        
+        // Add CSRF token if needed
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken.content;
+            form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function scanBatch() {
+    startBarcodeScan('batch_number');
+}
+
+function printQRCode(qrId) {
+    alert('QR code ' + qrId + ' sent to printer');
+}
+
+// Update max quantity when item is selected
+document.getElementById('po_line_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const maxQty = selectedOption.getAttribute('data-max-qty');
+    const qtyInput = document.getElementById('received_quantity');
+    
+    if (maxQty) {
+        qtyInput.max = maxQty;
+        qtyInput.setAttribute('data-max', maxQty);
+    }
+});
+
+// Validate quantity input
+document.getElementById('received_quantity').addEventListener('input', function() {
+    const max = parseFloat(this.getAttribute('data-max'));
+    const value = parseFloat(this.value);
+    
+    if (max && value > max) {
+        this.setCustomValidity('Quantity cannot exceed ' + max);
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}
