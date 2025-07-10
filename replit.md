@@ -10,18 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 2025)
 
-- **Database Migration**: Successfully migrated from MySQL to PostgreSQL for Replit compatibility
+- **Database Migration**: Successfully migrated to support both PostgreSQL (Replit) and MySQL (local)
+- **Configuration System**: Implemented application factory pattern with environment-aware config
 - **Security Updates**: Fixed session key configuration and template rendering issues  
 - **Sample Data**: Added admin user (admin/admin123) and sample purchase order for testing
-- **Environment Setup**: Configured PostgreSQL database with proper connection pooling
+- **Environment Setup**: Configured dual database support with automatic detection
+- **Local Development**: Created comprehensive local setup guide with MySQL integration
 
 ## System Architecture
 
 ### Backend Architecture
-- **Framework**: Flask web application with SQLAlchemy ORM
-- **Database**: MySQL with SQLAlchemy models and migrations
+- **Framework**: Flask web application with SQLAlchemy ORM using application factory pattern
+- **Database**: Dual support - PostgreSQL (Replit) and MySQL (local development)
 - **Authentication**: Session-based authentication with role-based access control
 - **Integration**: SAP Business One Service Layer integration for ERP connectivity
+- **Configuration**: Environment-aware configuration system with automatic database detection
 
 ### Frontend Architecture
 - **Template Engine**: Jinja2 templates with Bootstrap 5 dark theme
@@ -99,8 +102,9 @@ Preferred communication style: Simple, everyday language.
 ### Database Management
 - SQLAlchemy automatic table creation
 - Connection pooling and health monitoring
-- PostgreSQL database with Replit environment integration
-- Migrated from MySQL to PostgreSQL for Replit compatibility
+- Dual database support: PostgreSQL (Replit) and MySQL (local development)
+- Environment-aware database configuration with automatic detection
+- Fallback mechanisms for local development setup
 
 ### Security Considerations
 - Password hashing with Werkzeug security
